@@ -16,7 +16,7 @@ var (
 	once sync.Once
 )
 
-func LoadEnvDB() map[string]string {
+func loadEnvDB() map[string]string {
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatalf("Error al cargar .env %v", err)
@@ -37,7 +37,7 @@ func LoadEnvDB() map[string]string {
 // Patron Singleton nos ayudamos de once para ejecutar la conexion de la bases de datos 1 sola vez
 func NewPSQLDB() {
 
-	envDB := LoadEnvDB()
+	envDB := loadEnvDB()
 	once.Do(func() {
 
 		var err error
