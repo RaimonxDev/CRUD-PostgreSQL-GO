@@ -39,12 +39,13 @@ func NewPSQLDB() {
 
 	envDB := loadEnvDB()
 	once.Do(func() {
-
+		// manejar solo los errores con una variable unica llamada err
 		var err error
+		// db hace referencia a la variable global
 		db, err = sql.Open("postgres", envDB["database"]+"://"+envDB["userDB"]+":"+envDB["passwordDB"]+"@"+envDB["dbHost"]+"/"+envDB["databaseName"]+"?sslmode=disable")
 
 		if err != nil {
-			log.Fatalf("No se pudo conectar a la bases de datos: %s ", err)
+			log.Fatalf("No se pudo conectar a la bases de datos: %v", err)
 		}
 
 		if err = db.Ping(); err != nil {
@@ -55,7 +56,7 @@ func NewPSQLDB() {
 	})
 }
 
-// retorna una unica instancia a multidb
+// retorna una unica instancia de db
 func _() *sql.DB {
 	return db
 }
