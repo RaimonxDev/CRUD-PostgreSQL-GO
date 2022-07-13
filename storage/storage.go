@@ -57,6 +57,6 @@ func NewPSQLDB() {
 }
 
 // retorna una unica instancia de db
-func _() *sql.DB {
+func Pool() *sql.DB {
 	return db
 }
