@@ -11,7 +11,8 @@ type PsqlProduct struct {
 }
 
 const (
-	createProduct = `CREATE TABLE IF NOT EXISTS products(
+	//migrateProduct
+	migrateProduct = `CREATE TABLE IF NOT EXISTS products(
 	id SERIAL NOT NULL,
 	name VARCHAR(100) NOT NULL,
 	observation VARCHAR(150),
@@ -29,7 +30,7 @@ func NewPsqlProduct(db *sql.DB) *PsqlProduct {
 
 // Metodo Migrate de interface Storage
 func (p *PsqlProduct) Migrate() error {
-	stmt, err := p.db.Prepare(createProduct)
+	stmt, err := p.db.Prepare(migrateProduct)
 	if err != nil {
 		return err
 	}
