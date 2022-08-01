@@ -1,6 +1,8 @@
 package main
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/RaimonxDev/CRUD-PostgreSQL-GO/pkg/product"
 	"github.com/RaimonxDev/CRUD-PostgreSQL-GO/storage"
@@ -13,12 +15,18 @@ func main() {
 	storageProduct := storage.NewPsqlProduct(storage.Pool())
 	serviceProduct := product.NewService(storageProduct)
 
-	ms, err := serviceProduct.GetAll()
+	m, err := serviceProduct.GetByID(19)
 
 	if err != nil {
-		log.Fatalf("Product.GetAll: %v", err)
 	}
 
-	fmt.Println(ms)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		fmt.Println("No hay un producto con ese ID")
+	case err != nil:
+		log.Fatalf("Product.GetByID: %v", err)
+	default:
+		fmt.Println(m)
+	}
 
 }

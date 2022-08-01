@@ -11,6 +11,12 @@ type PsqlProduct struct {
 	db *sql.DB
 }
 
+/*Interfaces Propia para manejar el scan, como Query.rows tambien aplica Scan, Entonces cumple con nuestra interfaces y
+podemos aplicarla en nuestra funciona helper ScanRow Products*/
+type scanner interface {
+	Scan(dest ...interface{}) error
+}
+
 const (
 	//migrateProduct
 	migrateProduct = `CREATE TABLE IF NOT EXISTS products(
@@ -25,6 +31,8 @@ const (
 	createProduct = `INSERT INTO products(name, observation, price, created_at) VALUES($1 , $2, $3, $4) RETURNING id`
 
 	getAllProduct = `SELECT id, name, observation, price, created_at, updated_at FROM products`
+	// reusamos la consulta de getAllProduct mas el where
+	getProductById = getAllProduct + " WHERE id = $1"
 )
 
 // Retorna un nuevo punto de PsqlProduct
@@ -92,23 +100,11 @@ func (p *PsqlProduct) GetAll() (product.Models, error) {
 
 	ms := make(product.Models, 0)
 	for rows.Next() {
-
-		m := &product.Model{}
-		observationNull := sql.NullString{}
-		updatedAtNull := sql.NullTime{}
-
-		err := rows.Scan(
-			&m.ID,
-			&m.Name,
-			&observationNull,
-			&m.Price,
-			&m.CreatedAt,
-			&updatedAtNull)
+		// rows implementa Scan y cumple con nuestra interface scanner y por eso enviamos row a nuestro scanRowProducts
+		m, err := scanRowProduct(rows)
 		if err != nil {
 			return nil, err
 		}
-		m.Observation = observationNull.String
-		m.UpdatedAt = updatedAtNull.Time
 		ms = append(ms, m)
 	}
 	if err := rows.Err(); err != nil {
@@ -117,4 +113,41 @@ func (p *PsqlProduct) GetAll() (product.Models, error) {
 
 	return ms, nil
 
+}
+
+func (p *PsqlProduct) GeyByID(id uint) (*product.Model, error) {
+	stmt, err := p.db.Prepare(getProductById)
+
+	if err != nil {
+		return &product.Model{}, err
+	}
+	defer stmt.Close()
+	/*Retonarnamos directamente porque scanRowProduct retonar lo mismo que getByID*/
+	return scanRowProduct(stmt.QueryRow(id))
+}
+
+// Creamos esta funcion helper para que podamos usar en los metodos de getAll y getById
+// Porque se repito el codigo en ambos methodos
+/*Creamos una interface llamada scanner que implemente Scan,
+y asi poder accerder a sus valores
+*/
+func scanRowProduct(s scanner) (*product.Model, error) {
+	m := &product.Model{}
+	observationNull := sql.NullString{}
+	updatedAtNull := sql.NullTime{}
+
+	err := s.Scan(
+		&m.ID,
+		&m.Name,
+		&observationNull,
+		&m.Price,
+		&m.CreatedAt,
+		&updatedAtNull)
+	if err != nil {
+		return &product.Model{}, err
+	}
+	m.Observation = observationNull.String
+	m.UpdatedAt = updatedAtNull.Time
+
+	return m, nil
 }
