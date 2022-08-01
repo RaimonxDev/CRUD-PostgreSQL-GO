@@ -3,6 +3,7 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"github.com/RaimonxDev/CRUD-PostgreSQL-GO/pkg/product"
 )
 
 // Psql product usado para trabajar con postgress
@@ -21,6 +22,9 @@ const (
 	updated_At TIMESTAMP,
 	CONSTRAINT product_id_pk PRIMARY KEY(id)
 )`
+	createProduct = `INSERT INTO products(name, observation, price, created_at) VALUES($1 , $2, $3, $4) RETURNING id`
+
+	getAllProduct = `SELECT id, name, observation, price, created_at, updated_at FROM products`
 )
 
 // Retorna un nuevo punto de PsqlProduct
@@ -44,4 +48,73 @@ func (p *PsqlProduct) Migrate() error {
 	}
 	fmt.Println("Migracion creada correctamente")
 	return nil
+}
+
+// Create Implementa interface storage
+func (p *PsqlProduct) Create(m *product.Model) error {
+	stmt, err := p.db.Prepare(createProduct)
+
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	// RECIBE TODOS LOS PARAMETROS EN EL MISMO ORDEN DE LA CONSULTA
+
+	// Usamos el helper para manejar los nulos en PSQL
+	err = stmt.QueryRow(m.Name, stringToNull(m.Observation), m.Price, m.CreatedAt).Scan(&m.ID)
+
+	if err != nil {
+		return err
+	}
+	fmt.Println("Se creo el producto correctamente")
+	return nil
+
+}
+
+func (p *PsqlProduct) GetAll() (product.Models, error) {
+
+	stmt, err := p.db.Prepare(getAllProduct)
+	if err != nil {
+		//retornamos nil porque GET ALL retorna una product.Models y un error
+		//Entonces para el slices usamos un nil
+		return nil, err
+	}
+	defer stmt.Close()
+	rows, err := stmt.Query()
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	//creamos un slices de product model
+
+	ms := make(product.Models, 0)
+	for rows.Next() {
+
+		m := &product.Model{}
+		observationNull := sql.NullString{}
+		updatedAtNull := sql.NullTime{}
+
+		err := rows.Scan(
+			&m.ID,
+			&m.Name,
+			&observationNull,
+			&m.Price,
+			&m.CreatedAt,
+			&updatedAtNull)
+		if err != nil {
+			return nil, err
+		}
+		m.Observation = observationNull.String
+		m.UpdatedAt = updatedAtNull.Time
+		ms = append(ms, m)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return ms, nil
+
 }

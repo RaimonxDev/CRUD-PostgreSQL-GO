@@ -60,3 +60,14 @@ func NewPSQLDB() {
 func Pool() *sql.DB {
 	return db
 }
+
+//funcion helper para controlar los parametro null
+func stringToNull(s string) sql.NullString {
+	null := sql.NullString{String: s}
+	// Si null es distinto a vacio entonces hay algo que el usuario escribio
+	if null.String != "" {
+		null.Valid = true
+	}
+	// Si esta vacio entonces mandamos la variable null que hemos creado
+	return null
+}
